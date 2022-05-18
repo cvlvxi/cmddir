@@ -1,7 +1,5 @@
 # cmddir
 
-_pronounced command ‘Command Dir’_
-
 A prototype Directory Structure based Menu generating system
 
 This supports walking a Directory that has inner subfolder + bash/python scripts and generates:

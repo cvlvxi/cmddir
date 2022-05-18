@@ -1,0 +1,11 @@
+{
+    "name": "ok",
+    "cmds": [
+        {
+            "name": "hello",
+            "orig_name": "subcmd1",
+            "shortcuts": ["c", "b"]
+        }
+        
+    ]
+}

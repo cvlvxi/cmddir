@@ -11,3 +11,7 @@ This supports walking a Directory that has inner subfolder + bash/python scripts
    1. for use in Leaf commands defiend as a .py script
 
 More readme goes here
+
+# NOTE: Python 3.10+ only
+
+Since I've been using 3.10+ features, this is only supported with the latest 3.10+ python

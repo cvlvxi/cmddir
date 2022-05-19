@@ -98,8 +98,9 @@ class CmdPaths:
             name=self.root_stem, 
             orig_name=self.root_stem, 
             cmds=cmds,
-            title=to_ansi_art(self.root_stem))
-        
+            title=to_ansi_art(self.root_stem),
+            shortcuts=[name[0]]
+        )
         if other_cmds:
             c.update(other_cmds)
         return c
@@ -125,29 +126,21 @@ def append_module(path: PathLike):
         sys.path.append(str(path.resolve()))
 
 
-@dataclass
-class CommandTree:
-    commands: Commands
-    parent: Optional[CommandTree] = None
-    children: List[CommandTree] = field(default_factory=list)
-    level: int = 1
-
-
 def cmd_tree_builder(
     cmd_path: PathLike, modules: PathLike | List[PathLike] = None, *args, **kwargs
-) -> List[CommandTree]:
+) -> List[Commands]:
     """
-    Build a CommandTree from a directory path
+    Build a Commands from a directory path
 
     :root Path to the Command Structure
     :modules Path or Paths to modules to include for use within
     the Command Structure
 
-    A CommandTree will import the root command as a module
+    A Commands will import the root command as a module
     such that inside the tree's subfolders if a python
     file exists it can reference the root as a module
 
-    The first item in the List[CommandTree] will always be the root of the tree
+    The first item in the List[Commands] will always be the root of the tree
     """
 
     cmd_path = Path(cmd_path)
@@ -159,13 +152,14 @@ def cmd_tree_builder(
     for root, dirs, files in os.walk(cmd_path):
         if CmdPaths.path_to_ignore(root):
             continue
+        print(root, dirs, files)
         # os.walk will duplicate paths so let's not do that
         parts = root.split(os.sep)
         parts_from_stem: List[str] = parts[parts.index(cmd_path.stem):]
         path: str = os.sep.join(parts_from_stem)
         if path not in trees:
             cmds: Commands = CmdPaths.create(cmd_path.stem, root, dirs, files).commands()
-            trees[path] = CommandTree(commands=cmds)
+            trees[path] = cmds
 
     # For every tree find the children and parent
     for tree_root, curr_tree in trees.items():

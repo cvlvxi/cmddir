@@ -67,15 +67,17 @@ class BashScript(Callable):
     """
 
     def __init__(self, path: PathLike, *args, **kwargs):
+        # ENV
+        # Have some env parsing potentially here
         self.path = Path(path)
         assert self.path.exists()
         self.cmd = ["bash", self.path]
         if args:
             self.cmd += [str(x) for x in args]
-        if kwargs:
-            for k, v in kwargs.items():
-                self.cmd.append(f"--{str(k)}")
-                self.cmd.append(str(v))
+        # if kwargs:
+        #     for k, v in kwargs.items():
+        #         self.cmd.append(f"--{str(k)}")
+        #         self.cmd.append(str(v))
 
     def __call__(self) -> BashOut:
         ps = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

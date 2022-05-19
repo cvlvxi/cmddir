@@ -110,18 +110,22 @@ class Commands:
     cmds: Optional[List[Command]]
     name: Optional[str] = None
     orig_name: Optional[str] = None
+    shortcuts: List[str] = field(default_factory=list)
+    custom_shortcuts: List[str]= field(default_factory=list)
     msg: str = ""
     title: str = ""
     title_col: str = Fg.yellow
     desc: str = ""
     msg_col: str = Fg.yellow
-    level: int = 0
+    level: int = 1
     indent_by: int = 2
     bullet: str = ">"
     check: str = "√"
     ordered_hotkeys: bool = True
     type: CommandsType = CommandsType.Dropdown
     fn: Optional[Callable] = None
+    parent: Optional[Commands] = None
+    children: List[Commands] = field(default_factory=list)
 
     @staticmethod
     def from_json(j: str | Path | str) -> Commands:
@@ -143,10 +147,14 @@ class Commands:
         self.msg_col = other.msg_col or self.msg_col
         self.bullet = other.bullet or self.bullet
         self.check = other.check or other.check
+        self.shortcuts += other.shortcuts
+        self.custom_shortcuts = other.shortcuts
         for cmd in self.cmds:
             for o_cmd in other.cmds:
                 if o_cmd.orig_name == cmd.orig_name:
                     cmd.update(o_cmd)
+                else:
+                    print("Found invalid command in config")
         self.resolve_shortcut_conflicts()
 
     def resolve_shortcut_conflicts(self):
@@ -155,13 +163,13 @@ class Commands:
 
     def conflicting_commands(self) -> List[Tuple[Command, List[str], int]]:
         conflicting = []
-        for cmd in self.cmds:
+        shortcuty_things = self.cmds + self.children
+        for cmd in shortcuty_things:
             for other_cmd in self.cmds:
                 if cmd == other_cmd:
                     continue
-                # Find violating shortcuts for cmd
-                bad_shortcuts = [s for s in cmd.shortcuts if s in other_cmd.shortcuts]
-                num_custom_bad = len([s for s in bad_shortcuts if s in cmd.custom_shortcuts])
+                bad_shortcuts = list(set(cmd.shortcuts).intersection(other_cmd.shortcuts))
+                num_custom_bad = list(set(bad_shortcuts).intersection(cmd.custom_shortcuts))
                 if bad_shortcuts:
                     conflicting.append((cmd, bad_shortcuts, num_custom_bad))
                 continue
@@ -329,6 +337,38 @@ class MaxAlign:
     aliases: int
     name: int
     desc: int
+
+# from . import CommandTree
+# import sys
+
+# def cli2(tree: CommandTree, skips: List[str] = sys.argv[1:]):
+#     commands = tree.commands
+#     clear_screen()
+#     if commands.title:
+#         print(style(commands.title, commands.title_col))
+#     matcher: Optional[str] = None
+#     rest: List[str] = []
+#     chosen: Optional[C] = None
+#     match skips:
+#         case [m, *ms]:
+#             matcher = m
+#             rest = ms
+#         case [m]:
+#             matcher = m
+#     chosen = commands.find_command(matcher)
+#     out.skips = rest
+#     if not chosen:
+#         chosen = commands.prompt()
+#     out.chosen = chosen
+#     a = {}
+#     kwargs_keys = [k for k in kwargs.keys()]
+#     for k in kwargs_keys:
+#         a[k] = kwargs.pop(k)
+#     out.args = a
+#     out.args = Box(a)
+#     clear_screen()
+
+
 
 
 def cli(cmds: Commands):

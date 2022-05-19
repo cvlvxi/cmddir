@@ -6,6 +6,6 @@
             "orig_name": "subcmd1",
             "shortcuts": ["c", "b"]
         }
-        
-    ]
+    ],
+    "shortcuts": ["d"]
 }

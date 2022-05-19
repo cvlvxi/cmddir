@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel as PydanticBaseModel
 
-from cmddir.cmds import Command, Commands
+from cmddir.cmds import Command, SubMenu
 from cmddir.types import BashScript, PythonScript, PathLike
 from cmddir.utils import to_ansi_art
 
@@ -26,7 +26,7 @@ class BaseModel(PydanticBaseModel):
 @dataclass(init=False)
 class CmdPaths:
     """
-    os.walk transformer -> Commands
+    os.walk transformer -> SubMenu
     """
 
     cmd_path_stem: str
@@ -77,7 +77,7 @@ class CmdPaths:
             with open(init_path, "w") as f:
                 f.write("")
 
-    def commands(self, *args, **kwargs) -> Commands:
+    def create_menu(self, *args, **kwargs) -> SubMenu:
         cmds = []
         other_cmds = None
         for path in self.fullpaths:
@@ -86,20 +86,23 @@ class CmdPaths:
             path_struct = path_struct[path_struct.index(self.cmd_path_stem) + 1 :]
             name = path.stem
             cmd = Command(name=name, orig_name=name, shortcuts=[name[0]])
+            add_cmd = True
             match Path(path_struct[-1]).suffix:
                 case ".py":
                     cmd.fn = PythonScript(path_struct, *args, **kwargs)
                 case ".sh":
                     cmd.fn = BashScript(path, *args, **kwargs)
                 case ".json":
-                    other_cmds = Commands.from_json(path)
-            cmds.append(cmd)
-        c = Commands(
+                    other_cmds = SubMenu.from_json(path)
+                    add_cmd = False
+            if add_cmd:
+                cmds.append(cmd)
+        c = SubMenu(
             name=self.root_stem, 
             orig_name=self.root_stem, 
             cmds=cmds,
             title=to_ansi_art(self.root_stem),
-            shortcuts=[name[0]]
+            shortcuts=[self.root_stem[0]]
         )
         if other_cmds:
             c.update(other_cmds)
@@ -128,19 +131,19 @@ def append_module(path: PathLike):
 
 def cmd_tree_builder(
     cmd_path: PathLike, modules: PathLike | List[PathLike] = None, *args, **kwargs
-) -> List[Commands]:
+) -> List[SubMenu]:
     """
-    Build a Commands from a directory path
+    Build a SubMenu from a directory path
 
     :root Path to the Command Structure
     :modules Path or Paths to modules to include for use within
     the Command Structure
 
-    A Commands will import the root command as a module
+    A SubMenu will import the root command as a module
     such that inside the tree's subfolders if a python
     file exists it can reference the root as a module
 
-    The first item in the List[Commands] will always be the root of the tree
+    The first item in the List[SubMenu] will always be the root of the tree
     """
 
     cmd_path = Path(cmd_path)
@@ -158,7 +161,7 @@ def cmd_tree_builder(
         parts_from_stem: List[str] = parts[parts.index(cmd_path.stem):]
         path: str = os.sep.join(parts_from_stem)
         if path not in trees:
-            cmds: Commands = CmdPaths.create(cmd_path.stem, root, dirs, files).commands()
+            cmds: SubMenu = CmdPaths.create(cmd_path.stem, root, dirs, files).create_menu()
             trees[path] = cmds
 
     # For every tree find the children and parent

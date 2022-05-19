@@ -4,6 +4,7 @@ from cmddir.cmds import cli
 
 
 trees = cmd_tree_builder("test/subdir/test_cmds", "test/helpers")
+trees[0].resolve_shortcut_conflicts()
 breakpoint()
 
 # breakpoint()

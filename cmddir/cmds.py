@@ -106,7 +106,7 @@ class CommandsType(Enum):
 
 
 @dataclass
-class Commands:
+class SubMenu:
     cmds: Optional[List[Command]]
     name: Optional[str] = None
     orig_name: Optional[str] = None
@@ -124,11 +124,11 @@ class Commands:
     ordered_hotkeys: bool = True
     type: CommandsType = CommandsType.Dropdown
     fn: Optional[Callable] = None
-    parent: Optional[Commands] = None
-    children: List[Commands] = field(default_factory=list)
+    parent: Optional[SubMenu] = None
+    children: List[SubMenu] = field(default_factory=list)
 
     @staticmethod
-    def from_json(j: str | Path | str) -> Commands:
+    def from_json(j: str | Path | str) -> SubMenu:
         data = j
         if not isinstance(data, dict):
             data = getjson(data)
@@ -136,9 +136,9 @@ class Commands:
         if subcmds:
             subcmds = [Command(**x) for x in subcmds]
             data["cmds"] = subcmds
-        return Commands(**data)
+        return SubMenu(**data)
 
-    def update(self, other: Commands):
+    def update(self, other: SubMenu):
         self.name = other.name or self.name
         self.msg = other.msg or self.msg
         self.title = other.title or self.title
@@ -155,7 +155,6 @@ class Commands:
                     cmd.update(o_cmd)
                 else:
                     print("Found invalid command in config")
-        self.resolve_shortcut_conflicts()
 
     def resolve_shortcut_conflicts(self):
         while conflicts := self.conflicting_commands():
@@ -165,11 +164,13 @@ class Commands:
         conflicting = []
         shortcuty_things = self.cmds + self.children
         for cmd in shortcuty_things:
-            for other_cmd in self.cmds:
+            for other_cmd in shortcuty_things:
                 if cmd == other_cmd:
                     continue
-                bad_shortcuts = list(set(cmd.shortcuts).intersection(other_cmd.shortcuts))
-                num_custom_bad = list(set(bad_shortcuts).intersection(cmd.custom_shortcuts))
+                print(f"Current_CMD: {cmd.name} {cmd.shortcuts}")
+                print(f"Other_CMD: {other_cmd.name} {other_cmd.shortcuts}")
+                bad_shortcuts = list(set(cmd.shortcuts).intersection(set(other_cmd.shortcuts)))
+                num_custom_bad = list(set(bad_shortcuts).intersection(set(cmd.custom_shortcuts)))
                 if bad_shortcuts:
                     conflicting.append((cmd, bad_shortcuts, num_custom_bad))
                 continue
@@ -269,7 +270,7 @@ class Commands:
         return [cmd for cmd in self.cmds if cmd.match(matcher)]
 
 
-def generate_bullet(cmds: Commands):
+def generate_bullet(cmds: SubMenu):
     """
     Custom Bullet Generator
 
@@ -371,7 +372,7 @@ class MaxAlign:
 
 
 
-def cli(cmds: Commands):
+def cli(cmds: SubMenu):
     """
     When a method is wrapped with @cli(cmds)
 
@@ -401,7 +402,7 @@ def cli(cmds: Commands):
 
     trace: T
     This is a trace of what the chosens were previously
-    We also want to keep a trace of the args passed to each Commands
+    We also want to keep a trace of the args passed to each SubMenu
     layer in order for us to trace what's going on
     """
 
